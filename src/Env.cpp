@@ -18,28 +18,11 @@ namespace cs::env
 			std::string_view name;
 			std::string_view file;
 			std::string_view reason;
-			// Optional extra gate on the DLL at the path; null means any copy conflicts.
-			bool (*match)(const std::filesystem::path&) = nullptr;
 		};
-
-		// doodlum's standalone Upscaling is 1.1.x; jarari's Upscaling Custom is 1.7+.
-		bool IsLegacyUpscaling(const std::filesystem::path& a_dll)
-		{
-			// Maps the DLL without running DllMain or resolving its imports.
-			const auto module = ::LoadLibraryExW(a_dll.c_str(), nullptr, DONT_RESOLVE_DLL_REFERENCES);
-			const auto* data = module ? reinterpret_cast<const F4SE::PluginVersionData*>(::GetProcAddress(module, "F4SEPlugin_Version")) : nullptr;
-			const auto version = data && data->dataVersion == F4SE::PluginVersionData::kVersion ? data->pluginVersion : 0;
-			if (module)
-				::FreeLibrary(module);
-			const bool blocked = version && version < REL::Version{ 1, 2 }.pack();
-			L->info("{} reports F4SE plugin version {:08X}; {}", a_dll.filename().string(), version, blocked ? "blocked" : "not blocked");
-			return blocked;
-		}
 
 		constexpr std::array kIncompatiblePlugins{
 			PluginRule{ "Motion Vector Fixes", "MotionVectorFixes.dll", "CS includes Motion Vector Fixes; remove the standalone mod" },
 			PluginRule{ "Dynamic Cubemaps F4", "DynamicCubemapF4.dll", "CS includes Dynamic Cubemaps; remove the standalone mod" },
-			PluginRule{ "Upscaling (doodlum)", "Upscaling.dll", "CS includes Upscaling and Frame Generation; remove doodlum's standalone Upscaling mod", IsLegacyUpscaling },
 		};
 		constexpr std::array<PluginRule, 0> kRequiredPlugins{};
 
@@ -75,7 +58,7 @@ namespace cs::env
 			return;
 		g_conflictsDetected = true;
 		for (const auto& rule : kIncompatiblePlugins) {
-			if (PluginExists(rule.file) && (!rule.match || rule.match(PluginPath(rule.file))))
+			if (PluginExists(rule.file))
 				g_conflicts.push_back(std::format("Incompatible plugin {} detected: {}", rule.name, rule.reason));
 		}
 		for (const auto& rule : kRequiredPlugins) {
