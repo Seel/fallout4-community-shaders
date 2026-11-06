@@ -10,6 +10,7 @@ validation as well as a successful build.
 - [xmake](https://xmake.io)
 - [Git](https://git-scm.com/) and [Git LFS](https://git-lfs.com/)
 - PowerShell 7 (`pwsh`)
+- [vcpkg](https://vcpkg.io/) with `VCPKG_ROOT` set; the build resolves its libraries through it
 
 ## Clone
 
@@ -49,6 +50,16 @@ The script also stages the OG-era `d3dcompiler_47.dll` (6.3.9600.16384) into
 `build\tools\` for the OG stock identity test; it is never packaged.
 
 ## Configure and build
+
+Bootstrap vcpkg once and point `VCPKG_ROOT` at it; xmake resolves its `vcpkg::*` libraries through it:
+
+```powershell
+git clone https://github.com/microsoft/vcpkg C:\dev\vcpkg
+C:\dev\vcpkg\bootstrap-vcpkg.bat
+$env:VCPKG_ROOT = 'C:\dev\vcpkg'
+```
+
+Keep that clone full (no `--depth 1`): vcpkg's port versioning reads git history, so a shallow clone cannot check out pinned ports such as `directxtex`.
 
 Builds may install automatically. Use an isolated destination for development:
 
